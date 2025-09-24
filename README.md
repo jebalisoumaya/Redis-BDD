@@ -80,10 +80,18 @@ python start_dashboard.py
 
 ## Utilisation
 
+<img width="1895" height="1092" alt="image" src="https://github.com/user-attachments/assets/7acafa9c-3325-4493-a16f-67479d249cef" />
+
 ### Dashboard Web
 - Accéder au dashboard principal : http://localhost:5000
 - Dashboard amélioré avec analyses supplémentaires : http://localhost:5000/enhanced
 - Page de test des APIs : http://localhost:5000/api
+
+  <img width="1897" height="973" alt="image" src="https://github.com/user-attachments/assets/9f399578-303c-4ba7-ab6c-244ae9f5543c" />
+
+  <img width="1892" height="982" alt="image" src="https://github.com/user-attachments/assets/1150e521-e4ce-44ab-baa7-2b947f8b3a4d" />
+
+
 
 ### APIs Disponibles
 
