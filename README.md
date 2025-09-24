@@ -61,7 +61,8 @@ pip install -r requirements.txt
 
 3. Démarrer Redis Stack
 ```bash
-redis-stack-server
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
+
 ```
 
 4. Charger les données dans Redis
