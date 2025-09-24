@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Diabète - Analyses Redis Avancées</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="fas fa-heartbeat"></i>
+                Dashboard Diabète - Redis Analytics
+            </span>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="currentTime"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <div class="container-fluid mt-4">
+        <!-- Statistiques principales -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="stat-header">
+                    <h2><i class="fas fa-chart-line"></i> Statistiques Générales</h2>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Total Patients</div>
+                                <div class="stat-value" id="totalPatients">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Diabétiques</div>
+                                <div class="stat-value" id="diabeticPatients">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Taux de Diabète</div>
+                                <div class="stat-value" id="diabetesRate">---%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-injured"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Patients Haut Risque</div>
+                                <div class="stat-value" id="highRiskCount">---</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques Redis -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="stat-header">
+                    <h2><i class="fas fa-server"></i> Performance Redis</h2>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-info text-white">
+                            <div class="stat-icon">
+                                <i class="fas fa-key"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Total Clés</div>
+                                <div class="stat-value" id="redisKeys">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-success text-white">
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Taux de Cache</div>
+                                <div class="stat-value" id="hitRatio">---%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-warning text-white">
+                            <div class="stat-icon">
+                                <i class="fas fa-memory"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Mémoire Utilisée</div>
+                                <div class="stat-value" id="memoryUsed">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-danger text-white">
+                            <div class="stat-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-title">Version Redis</div>
+                                <div class="stat-value" id="redisVersion">---</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyses par groupes d'âge et BMI -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-users mr-2"></i>
+                            Distribution par Groupes d'Âge
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingAge">
+                        <div class="spinner"></div>
+                        <span>Chargement des données d'âge...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-weight mr-2"></i>
+                            Catégories BMI
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="bmiChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingBmi">
+                        <div class="spinner"></div>
+                        <span>Chargement des données BMI...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nouvelles analyses glucose -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-vial mr-2"></i>
+                            Analyse des Niveaux de Glucose
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="glucoseChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingGlucose">
+                        <div class="spinner"></div>
+                        <span>Chargement des données glucose...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-chart-area mr-2"></i>
+                            Corrélation Âge-Glucose-Diabète
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ageGlucoseChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingAgeGlucose">
+                        <div class="spinner"></div>
+                        <span>Chargement corrélation âge-glucose...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyses détaillées -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-chart-pie mr-2"></i>
+                            Analyse Détaillée par Plages de Glucose
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="detailedGlucoseChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingDetailedGlucose">
+                        <div class="spinner"></div>
+                        <span>Chargement analyse détaillée glucose...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-chart-bar mr-2"></i>
+                            Analyse Détaillée par BMI
+                        </h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="detailedBMIChart"></canvas>
+                    </div>
+                    <div class="loading" id="loadingDetailedBMI">
+                        <div class="spinner"></div>
+                        <span>Chargement analyse BMI détaillée...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyse grossesse -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-baby mr-2"></i>
+                            Analyse Grossesse et Diabète
+                        </h5>
+                    </div>
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="stat-card bg-primary text-white">
+                                <div class="stat-icon">
+                                    <i class="fas fa-female"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-title">Femmes Enceintes</div>
+                                    <div class="stat-value" id="totalPregnant">---</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card bg-danger text-white">
+                                <div class="stat-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-title">Avec Diabète</div>
+                                    <div class="stat-value" id="pregnantDiabetic">---</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card bg-warning text-white">
+                                <div class="stat-icon">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-title">Taux</div>
+                                    <div class="stat-value" id="pregnantRate">---%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container mt-3">
+                        <canvas id="pregnantChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top patients -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5 class="chart-title">
+                            <i class="fas fa-trophy mr-2"></i>
+                            Top 5 - Glucose le plus élevé
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="topGlucoseTable">
+                            <thead>
+                                <tr>
+                                    <th>Rang</th>
+                                    <th>Patient ID</th>
+                                    <th>Glucose</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Variables globales pour les graphiques
+        let ageChart, bmiChart, pregnancyChart, glucoseChart, ageGlucoseChart, detailedGlucoseChart, detailedBMIChart;
+
+        // Fonction pour mettre à jour l'heure
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('fr-FR');
+        }
+
+        // Fonction pour charger les statistiques générales
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                document.getElementById('totalPatients').textContent = data.total_patients;
+                document.getElementById('diabeticPatients').textContent = data.diabetic_patients;
+                document.getElementById('diabetesRate').textContent = data.diabetes_rate + '%';
+            } catch (error) {
+                console.error('Erreur lors du chargement des statistiques:', error);
+            }
+        }
+
+        // Fonction pour mettre à jour les statistiques Redis
+        async function updateRedisPerformance() {
+            try {
+                const response = await fetch('/api/redis_performance');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+                
+                document.getElementById('hitRatio').textContent = data.hit_ratio + '%';
+                document.getElementById('redisKeys').textContent = data.total_keys;
+                document.getElementById('memoryUsed').textContent = data.used_memory_human;
+                document.getElementById('redisVersion').textContent = data.redis_version;
+            } catch (error) {
+                console.error('Erreur lors du chargement des performances Redis:', error);
+            }
+        }
+
+        // Fonction pour créer le graphique des groupes d'âge
+        async function loadAgeGroups() {
+            document.getElementById('loadingAge').style.display = 'flex';
+            
+            try {
+                const response = await fetch('/api/age_groups');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                document.getElementById('loadingAge').style.display = 'none';
+                
+                const ctx = document.getElementById('ageChart').getContext('2d');
+                
+                if (ageChart) {
+                    ageChart.destroy();
+                }
+
+                ageChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.age_group),
+                        datasets: [{
+                            label: 'Diabétiques',
+                            data: data.map(item => item.diabetic),
+                            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Non-diabétiques',
+                            data: data.map(item => item.non_diabetic),
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement des groupes d\'âge:', error);
+                document.getElementById('loadingAge').style.display = 'none';
+            }
+        }
+
+        // Fonction pour créer le graphique BMI
+        async function loadBmiCategories() {
+            document.getElementById('loadingBmi').style.display = 'flex';
+            
+            try {
+                const response = await fetch('/api/bmi_categories');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                document.getElementById('loadingBmi').style.display = 'none';
+                
+                const ctx = document.getElementById('bmiChart').getContext('2d');
+                
+                if (bmiChart) {
+                    bmiChart.destroy();
+                }
+
+                bmiChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(item => `${item.category} (${item.rate}%)`),
+                        datasets: [{
+                            data: data.map(item => item.total),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 205, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement des catégories BMI:', error);
+                document.getElementById('loadingBmi').style.display = 'none';
+            }
+        }
+
+        // Fonction pour créer le graphique des niveaux de glucose
+        async function createGlucoseChart() {
+            document.getElementById('loadingGlucose').style.display = 'flex';
+            
+            try {
+                const response = await fetch('/api/glucose_analysis');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+                
+                document.getElementById('loadingGlucose').style.display = 'none';
+                
+                const ctx = document.getElementById('glucoseChart').getContext('2d');
+                
+                if (glucoseChart) {
+                    glucoseChart.destroy();
+                }
+                
+                glucoseChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.level),
+                        datasets: [{
+                            label: 'Diabétiques',
+                            data: data.map(item => item.diabetic),
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Non-diabétiques',
+                            data: data.map(item => item.non_diabetic),
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Distribution des patients par niveau de glucose'
+                            },
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Nombre de patients'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement des données glucose:', error);
+                document.getElementById('loadingGlucose').style.display = 'none';
+            }
+        }
+
+        // Fonction pour créer le graphique de corrélation âge-glucose
+        async function createAgeGlucoseChart() {
+            document.getElementById('loadingAgeGlucose').style.display = 'flex';
+            
+            try {
+                const response = await fetch('/api/age_glucose_correlation');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+                
+                document.getElementById('loadingAgeGlucose').style.display = 'none';
+                
+                const ctx = document.getElementById('ageGlucoseChart').getContext('2d');
+                
+                if (ageGlucoseChart) {
+                    ageGlucoseChart.destroy();
+                }
+                
+                ageGlucoseChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => item.age_group),
+                        datasets: [{
+                            label: 'Glucose Moyen',
+                            data: data.map(item => item.avg_glucose),
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y',
+                        }, {
+                            label: 'Taux de Diabète (%)',
+                            data: data.map(item => item.diabetes_rate),
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y1',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Corrélation entre âge, glucose et diabète'
+                            },
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Groupes d\'âge'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Glucose (mg/dL)'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Taux de diabète (%)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement de la corrélation âge-glucose:', error);
+                document.getElementById('loadingAgeGlucose').style.display = 'none';
+            }
+        }
+
+        // Fonction pour créer les graphiques d'analyse détaillée
+        async function createDetailedAnalysisCharts() {
+            document.getElementById('loadingDetailedGlucose').style.display = 'flex';
+            document.getElementById('loadingDetailedBMI').style.display = 'flex';
+            
+            try {
+                const response = await fetch('/api/detailed_patient_analysis');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+                
+                // Graphique glucose détaillé
+                document.getElementById('loadingDetailedGlucose').style.display = 'none';
+                
+                const ctxGlucose = document.getElementById('detailedGlucoseChart').getContext('2d');
+                
+                if (detailedGlucoseChart) {
+                    detailedGlucoseChart.destroy();
+                }
+                
+                detailedGlucoseChart = new Chart(ctxGlucose, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.glucose_analysis.map(item => `${item.range} (${item.rate}%)`),
+                        datasets: [{
+                            data: data.glucose_analysis.map(item => item.diabetic),
+                            backgroundColor: [
+                                'rgba(40, 167, 69, 0.8)',
+                                'rgba(255, 193, 7, 0.8)',
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(220, 53, 69, 0.8)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Patients diabétiques par plage de glucose'
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                // Graphique BMI détaillé
+                document.getElementById('loadingDetailedBMI').style.display = 'none';
+                
+                const ctxBMI = document.getElementById('detailedBMIChart').getContext('2d');
+                
+                if (detailedBMIChart) {
+                    detailedBMIChart.destroy();
+                }
+                
+                detailedBMIChart = new Chart(ctxBMI, {
+                    type: 'bar',
+                    data: {
+                        labels: data.bmi_analysis.map(item => item.range),
+                        datasets: [{
+                            label: 'Diabétiques',
+                            data: data.bmi_analysis.map(item => item.diabetic),
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Non-diabétiques',
+                            data: data.bmi_analysis.map(item => item.non_diabetic),
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Distribution par catégorie de BMI'
+                            },
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Nombre de patients'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'analyse détaillée:', error);
+                document.getElementById('loadingDetailedGlucose').style.display = 'none';
+                document.getElementById('loadingDetailedBMI').style.display = 'none';
+            }
+        }
+
+        // Fonction pour l'analyse grossesse
+        async function loadPregnantAnalysis() {
+            try {
+                const response = await fetch('/api/pregnant_analysis');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                document.getElementById('totalPregnant').textContent = data.total_pregnant;
+                document.getElementById('pregnantDiabetic').textContent = data.diabetic_pregnant;
+                document.getElementById('pregnantRate').textContent = data.diabetes_rate + '%';
+
+                const ctx = document.getElementById('pregnantChart').getContext('2d');
+                
+                if (pregnancyChart) {
+                    pregnancyChart.destroy();
+                }
+
+                pregnancyChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Avec diabète', 'Sans diabète'],
+                        datasets: [{
+                            data: [data.diabetic_pregnant, data.non_diabetic_pregnant],
+                            backgroundColor: ['#FF6384', '#36A2EB'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'analyse grossesse:', error);
+            }
+        }
+
+        // Fonction pour charger le top glucose
+        async function loadTopGlucose() {
+            try {
+                const response = await fetch('/api/top_glucose');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                const tbody = document.querySelector('#topGlucoseTable tbody');
+                tbody.innerHTML = data.slice(0, 5).map(item => `
+                    <tr>
+                        <td>${item.rank}</td>
+                        <td>${item.patient_id}</td>
+                        <td>${item.glucose}</td>
+                        <td><span class="badge ${item.outcome === 'Diabétique' ? 'bg-danger' : 'bg-success'}">${item.outcome}</span></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Erreur lors du chargement du top glucose:', error);
+            }
+        }
+
+        // Fonction pour charger l'analyse haut risque
+        async function loadHighRiskAnalysis() {
+            try {
+                const response = await fetch('/api/high_risk_analysis');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Erreur:', data.error);
+                    return;
+                }
+
+                document.getElementById('highRiskCount').textContent = data.high_risk_count;
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'analyse haut risque:', error);
+            }
+        }
+
+        // Fonction principale de chargement
+        async function loadDashboard() {
+            updateTime();
+            await Promise.all([
+                loadStats(),
+                updateRedisPerformance(),
+                loadAgeGroups(),
+                loadBmiCategories(),
+                createGlucoseChart(),
+                createAgeGlucoseChart(),
+                createDetailedAnalysisCharts(),
+                loadPregnantAnalysis(),
+                loadTopGlucose(),
+                loadHighRiskAnalysis()
+            ]);
+        }
+
+        // Chargement initial et mise à jour périodique
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            
+            // Mise à jour toutes les 30 secondes
+            setInterval(loadDashboard, 30000);
+        });
+    </script>
+</body>
+</html>
