@@ -18,6 +18,11 @@ Le projet contient une analyse complète de 768 patients diabétiques avec des v
 - Dashboard web avec graphiques interactifs
 - APIs REST pour accéder aux données
 
+
+  <img width="1890" height="905" alt="image" src="https://github.com/user-attachments/assets/32f67c4c-4a88-40f2-a60c-bbbdb308bbc9" />
+
+
+
 ## Structure du Projet
 
 ```
